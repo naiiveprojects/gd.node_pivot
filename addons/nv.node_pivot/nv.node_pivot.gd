@@ -1,18 +1,19 @@
 tool
 extends EditorPlugin
 
+enum { TWO_DIMENSION, CONTROL }
 
-const LIST_PIVOT := {
-	"Top Left": [Vector2(1, 1), Vector2(0, 0)],
-	"Top Right": [Vector2(-1, 1), Vector2(1, 0)],
-	"Bottom Right": [Vector2(-1, -1), Vector2(1, 1)],
-	"Bottom Left": [Vector2(1, -1), Vector2(0, 1)],
+const LIST_PIVOT := { # Title : [ 2D, Control ] preset
+	"Top Left": [ Vector2.ONE, Vector2.ZERO ],
+	"Top Right": [ Vector2(-1, 1), Vector2.RIGHT ],
+	"Bottom Right": [ -Vector2.ONE, Vector2.ONE ],
+	"Bottom Left": [ Vector2(1, -1), Vector2.DOWN ],
 	"Separator": [],
-	"Center Left": [Vector2(1, 0), Vector2(0, 0.5)],
-	"Center Top": [Vector2(0, 1), Vector2(0.5, 0)],
-	"Center Right": [Vector2(-1, 0), Vector2(1, 0.5)],
-	"Center Bottom": [Vector2(0, -1), Vector2(0.5, 1)],
-	"Center": [Vector2(0, 0), Vector2(0.5, 0.5)]
+	"Center Left": [ Vector2.RIGHT, Vector2(0, 0.5) ],
+	"Center Top": [ Vector2.DOWN, Vector2(0.5, 0) ],
+	"Center Right": [ Vector2.LEFT, Vector2(1, 0.5) ],
+	"Center Bottom": [ Vector2.UP, Vector2(0.5, 1) ],
+	"Center": [ Vector2.ZERO, Vector2.ONE / 2 ]
 } # Folowing anchor preset list
 
 var objects: Array
@@ -29,20 +30,19 @@ func _enter_tree() -> void:
 	trigger.icon = trigger.get_icon("EditorPivot", "EditorIcons")
 	trigger.hint_tooltip = "Preset for Pivot Offset."
 	
-	options.clear()
 	for key in LIST_PIVOT.keys():
 		if key == "Separator":
 			options.add_separator()
 			continue
 		# Get Icon Name
 		var icon := "ControlAlign"
-		if key.find("Center") != -1:
+		if key.find("Center") == -1:
+			icon += key.replace(" ", "")
+		else:
 			var text: Array = key.rsplit(" ", false)
 			text.invert()
 			icon += key if text.size() <= 1 else "{}{}".format(text, "{}")
-		else:
-			icon += key.replace(" ", "")
-		# Get Icon
+		
 		options.add_icon_item(trigger.get_icon(icon, "EditorIcons"), key)
 	
 	trigger.get_parent().move_child(trigger, 0)
@@ -73,10 +73,10 @@ func _set_pivot_offset(id: int) -> void:
 
 
 func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][0]
+	var pivot: Vector2 = LIST_PIVOT[pos_name][TWO_DIMENSION]
 	var tex = node.texture if type == "Sprite" else node.frames.get_frame(node.animation, 0)
 	
-	var offset: Vector2 = Vector2.ZERO
+	var offset := Vector2.ZERO
 	offset.x = pivot.x * tex.get_width() / 2
 	offset.y = pivot.y * tex.get_height() / 2
 	
@@ -86,9 +86,9 @@ func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
 
 
 func _set_control_pivot(node: Control, pos_name: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][1]
+	var pivot: Vector2 = LIST_PIVOT[pos_name][CONTROL]
 	
-	var offset: Vector2 = Vector2.ZERO
+	var offset := Vector2.ZERO
 	offset.x = pivot.x * node.rect_size.x
 	offset.y = pivot.y * node.rect_size.y
 	

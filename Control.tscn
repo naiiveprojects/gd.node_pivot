@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://ss_editor.png" type="Texture" id=1]
+
+[node name="Control" type="Control"]
+margin_left = 94.0
+margin_top = 39.0
+margin_right = 134.0
+margin_bottom = 79.0
+rect_pivot_offset = Vector2( 20, 20 )
+
+[node name="Sprite" type="Sprite" parent="."]
+position = Vector2( 129, 109 )
+scale = Vector2( 0.5, 0.5 )
+texture = ExtResource( 1 )
+offset = Vector2( -719.5, 0 )

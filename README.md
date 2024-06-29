@@ -14,10 +14,10 @@ Add preset for Node Pivot offset / center point, inspired from [sprite_quick_off
 1. Clone this Git repository:
 
     ```bash
-    git clone https://github.com/naiiveprojects/
+    git clone https://github.com/naiiveprojects/gd.node_pivot.git
     ```
 
-    Alternatively, you can [download a ZIP archive](https://github.com/naiiveprojects/) if you do not have Git installed.
+    Alternatively, you can [download a ZIP archive](https://github.com/naiiveprojects/gd.node_pivot/archive/refs/heads/3.x.zip) if you do not have Git installed.
 
 2. Move the `addons/` folder to your project folder.
 3. In the editor, open **Project > Project Settings**, go to **Plugins**, and enable the **NV Node Pivot** plugin.

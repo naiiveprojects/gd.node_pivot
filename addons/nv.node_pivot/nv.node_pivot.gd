@@ -1,80 +1,111 @@
-tool
+@tool
 extends EditorPlugin
 
 enum { TWO_DIMENSION, CONTROL }
 
 const LIST_PIVOT := { # Title : [ 2D, Control ] preset
-	"Top Left": [ Vector2.ONE, Vector2.ZERO ],
-	"Top Right": [ Vector2(-1, 1), Vector2.RIGHT ],
-	"Bottom Right": [ -Vector2.ONE, Vector2.ONE ],
-	"Bottom Left": [ Vector2(1, -1), Vector2.DOWN ],
-	"Separator": [],
-	"Center Left": [ Vector2.RIGHT, Vector2(0, 0.5) ],
-	"Center Top": [ Vector2.DOWN, Vector2(0.5, 0) ],
-	"Center Right": [ Vector2.LEFT, Vector2(1, 0.5) ],
-	"Center Bottom": [ Vector2.UP, Vector2(0.5, 1) ],
-	"Center": [ Vector2.ZERO, Vector2.ONE / 2 ]
-} # Folowing anchor preset list
+	"Top Left": [ Vector2i.ONE, Vector2i.ZERO ],
+	"Center Top": [ Vector2i.DOWN, Vector2(0.5, 0) ],
+	"Top Right": [ Vector2i(-1, 1), Vector2i.RIGHT ],
+	"Center Left": [ Vector2i.RIGHT, Vector2(0, 0.5) ],
+	"Center": [ Vector2i.ZERO, Vector2.ONE / 2 ],
+	"Center Right": [ Vector2i.LEFT, Vector2(1, 0.5) ],
+	"Bottom Left": [ Vector2i(1, -1), Vector2i.DOWN ],
+	"Center Bottom": [ Vector2i.UP, Vector2(0.5, 1) ],
+	"Bottom Right": [ -Vector2i.ONE, Vector2i.ONE ],
+}
 
 var objects: Array
-var trigger: ToolButton
-var options: PopupMenu
+var trigger: Button
+var panel: PanelContainer
+var container: VBoxContainer
+var title: Label
+var margin: MarginContainer
+var grid: GridContainer
 
 
 func _enter_tree() -> void:
-	trigger = ToolButton.new()
-	options = PopupMenu.new()
-	# Add early to get access to editor theme (get_icon)
-	add_control_to_container(CONTAINER_CANVAS_EDITOR_MENU, trigger)
+	trigger = Button.new()
+	panel = PanelContainer.new()
+	container = VBoxContainer.new()
+	title = Label.new()
+	margin = MarginContainer.new()
+	grid = GridContainer.new()
 	
-	trigger.icon = trigger.get_icon("EditorPivot", "EditorIcons")
-	trigger.hint_tooltip = "Preset for Pivot Offset."
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	
+	grid.columns = 3
+	var margin_value := 6
+	margin.add_theme_constant_override("margin_top", margin_value)
+	margin.add_theme_constant_override("margin_left", margin_value)
+	margin.add_theme_constant_override("margin_bottom", margin_value)
+	margin.add_theme_constant_override("margin_right", margin_value)
+	
+	add_control_to_container(CONTAINER_CANVAS_EDITOR_MENU, trigger)
+	trigger.get_parent().move_child(trigger, 0)
+	trigger.flat = true
+	trigger.icon = trigger.get_theme_icon("EditorPivot", "EditorIcons")
+	trigger.tooltip_text = "Preset for Pivot Offset."
+	title.text = "Pivot Offset"
 	
 	for key in LIST_PIVOT.keys():
-		if key == "Separator":
-			options.add_separator()
-			continue
-		# Get Icon Name
-		var icon := "ControlAlign"
-		if key.find("Center") == -1:
-			icon += key.replace(" ", "")
-		else:
-			var text: Array = key.rsplit(" ", false)
-			text.invert()
-			icon += key if text.size() <= 1 else "{}{}".format(text, "{}")
-		
-		options.add_icon_item(trigger.get_icon(icon, "EditorIcons"), key)
+		var button := Button.new()
+		var icon := "ControlAlign" + str(key).replace(" ", "")
+		button.flat = true
+		button.icon = trigger.get_theme_icon(icon, "EditorIcons")
+		button.tooltip_text = key
+		button.mouse_filter = Control.MOUSE_FILTER_PASS
+		button.pressed.connect(_set_pivot_offset.bind(key))
+		grid.add_child(button)
 	
-	trigger.get_parent().move_child(trigger, 0)
-	trigger.add_child(options)
+	panel.add_theme_stylebox_override(
+			"panel",
+			trigger.get_theme_stylebox("Content", "EditorStyles")
+	)
+	panel.visible = false
+	margin.add_child(grid)
+	container.add_child(title)
+	container.add_child(margin)
+	panel.add_child(container)
+	add_child(panel)
 	
-	trigger.connect("pressed", self, "_show_options")
-	options.connect("id_pressed", self, "_set_pivot_offset")
+	panel.mouse_exited.connect( func(): panel.hide() )
+	trigger.pressed.connect(
+			func():
+				panel.position = trigger.global_position + trigger.size
+				panel.position.x -= trigger.size.x
+				panel.show()
+	)
 
 
 func _exit_tree() -> void:
 	remove_control_from_container(CONTAINER_CANVAS_EDITOR_MENU, trigger)
 	trigger.queue_free()
+	panel.queue_free()
 
 
 func _input(event: InputEvent) -> void:
 	if event.is_pressed():
-		yield(get_tree(), "idle_frame")
+		await get_tree().process_frame
 		objects = get_editor_interface().get_selection().get_selected_nodes()
 		trigger.visible = bool(objects != [])
 
 
-func _set_pivot_offset(id: int) -> void:
+func _set_pivot_offset(pivot_offset: String) -> void:
 	for node in objects:
-		if node.is_class("Sprite") or node.is_class("AnimatedSprite"):
-			_set_2d_pivot(node, options.get_item_text(id), node.get_class())
+		if node.is_class("Sprite2D") or node.is_class("AnimatedSprite2D"):
+			_set_pivot_2d(node, pivot_offset, node.get_class())
 		elif node.is_class("Control"):
-			_set_control_pivot(node, options.get_item_text(id))
+			_set_pivot_control(node, pivot_offset)
+	panel.hide()
 
 
-func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][TWO_DIMENSION]
-	var tex = node.texture if type == "Sprite" else node.frames.get_frame(node.animation, 0)
+func _set_pivot_2d(node: Node2D, pivot_offset: String, type: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[pivot_offset][TWO_DIMENSION]
+	var tex = node.texture if type == "Sprite2D" else node.frames.get_frame(node.animation, 0)
 	
 	var offset := Vector2.ZERO
 	offset.x = pivot.x * tex.get_width() / 2
@@ -82,21 +113,15 @@ func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
 	
 	node.centered = true
 	node.offset = offset
-	node.property_list_changed_notify()
+	node.notify_property_list_changed()
 
 
-func _set_control_pivot(node: Control, pos_name: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][CONTROL]
+func _set_pivot_control(node: Control, pivot_offset: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[pivot_offset][CONTROL]
 	
 	var offset := Vector2.ZERO
-	offset.x = pivot.x * node.rect_size.x
-	offset.y = pivot.y * node.rect_size.y
+	offset.x = pivot.x * node.size.x
+	offset.y = pivot.y * node.size.y
 	
-	node.rect_pivot_offset = offset
-	node.property_list_changed_notify()
-
-
-func _show_options() -> void:
-	options.rect_position = trigger.rect_global_position + trigger.rect_size
-	options.rect_position.x -= trigger.rect_size.x
-	options.popup()
+	node.pivot_offset = offset
+	node.notify_property_list_changed()

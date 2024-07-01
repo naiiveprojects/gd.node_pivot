@@ -1,40 +1,36 @@
 tool
 extends EditorPlugin
 
-enum { TWO_DIMENSION, CONTROL }
+enum { XY, CONTROL }
 
-const LIST_PIVOT := { # Title : [ 2D, Control ] preset
+const LIST_PIVOT := {
 	"Top Left": [ Vector2.ONE, Vector2.ZERO ],
 	"Top Right": [ Vector2(-1, 1), Vector2.RIGHT ],
 	"Bottom Right": [ -Vector2.ONE, Vector2.ONE ],
-	"Bottom Left": [ Vector2(1, -1), Vector2.DOWN ],
-	"Separator": [],
+	"Bottom Left": [ Vector2(1, -1), Vector2.DOWN ], 0: null,
 	"Center Left": [ Vector2.RIGHT, Vector2(0, 0.5) ],
 	"Center Top": [ Vector2.DOWN, Vector2(0.5, 0) ],
 	"Center Right": [ Vector2.LEFT, Vector2(1, 0.5) ],
 	"Center Bottom": [ Vector2.UP, Vector2(0.5, 1) ],
 	"Center": [ Vector2.ZERO, Vector2.ONE / 2 ]
-} # Folowing anchor preset list
+}
 
 var objects: Array
-var trigger: ToolButton
-var options: PopupMenu
+var trigger := ToolButton.new()
+var options := PopupMenu.new()
 
 
 func _enter_tree() -> void:
-	trigger = ToolButton.new()
-	options = PopupMenu.new()
-	# Add early to get access to editor theme (get_icon)
 	add_control_to_container(CONTAINER_CANVAS_EDITOR_MENU, trigger)
 	
 	trigger.icon = trigger.get_icon("EditorPivot", "EditorIcons")
 	trigger.hint_tooltip = "Preset for Pivot Offset."
 	
 	for key in LIST_PIVOT.keys():
-		if key == "Separator":
+		if not key is String:
 			options.add_separator()
 			continue
-		# Get Icon Name
+		
 		var icon := "ControlAlign"
 		if key.find("Center") == -1:
 			icon += key.replace(" ", "")
@@ -72,8 +68,8 @@ func _set_pivot_offset(id: int) -> void:
 			_set_control_pivot(node, options.get_item_text(id))
 
 
-func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][TWO_DIMENSION]
+func _set_2d_pivot(node: Node2D, list: String, type: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[list][XY]
 	var tex = node.texture if type == "Sprite" else node.frames.get_frame(node.animation, 0)
 	
 	var offset := Vector2.ZERO
@@ -85,8 +81,8 @@ func _set_2d_pivot(node: Node2D, pos_name: String, type: String) -> void:
 	node.property_list_changed_notify()
 
 
-func _set_control_pivot(node: Control, pos_name: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pos_name][CONTROL]
+func _set_control_pivot(node: Control, list: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[list][CONTROL]
 	
 	var offset := Vector2.ZERO
 	offset.x = pivot.x * node.rect_size.x
@@ -100,3 +96,10 @@ func _show_options() -> void:
 	options.rect_position = trigger.rect_global_position + trigger.rect_size
 	options.rect_position.x -= trigger.rect_size.x
 	options.popup()
+
+
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░ Title: NV Node Pivot
+# ░░█▀█░█▀█░█░░░█░░░█░█░█▀▀░░ Act: preset for Pivot offset
+# ░░█░█░█▀█░░▀▄░░▀▄░▀▄▀░█▀▀░░ Cast[ Editor, Node2D, Control ]
+# ░░▀░▀░▀░▀░░░▀░░░▀░░▀░░▀▀▀░░ Writers[ @illlustr, ]
+# ░ Projects ░░░░░░░░░░░░░░░░ https://github.com/naiiveprojects

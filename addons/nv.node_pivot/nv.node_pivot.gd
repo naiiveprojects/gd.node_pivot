@@ -1,9 +1,9 @@
 @tool
 extends EditorPlugin
 
-enum { TWO_DIMENSION, CONTROL }
+enum { XY, CONTROL }
 
-const LIST_PIVOT := { # Title : [ 2D, Control ] preset
+const LIST_PIVOT := {
 	"Top Left": [ Vector2i.ONE, Vector2i.ZERO ],
 	"Center Top": [ Vector2i.DOWN, Vector2(0.5, 0) ],
 	"Top Right": [ Vector2i(-1, 1), Vector2i.RIGHT ],
@@ -16,28 +16,21 @@ const LIST_PIVOT := { # Title : [ 2D, Control ] preset
 }
 
 var objects: Array
-var trigger: Button
-var panel: PanelContainer
-var container: VBoxContainer
-var title: Label
-var margin: MarginContainer
-var grid: GridContainer
+var trigger := Button.new()
+var panel := PanelContainer.new()
+var container := VBoxContainer.new()
+var title := Label.new()
+var margin := MarginContainer.new()
+var grid := GridContainer.new()
 
 
 func _enter_tree() -> void:
-	trigger = Button.new()
-	panel = PanelContainer.new()
-	container = VBoxContainer.new()
-	title = Label.new()
-	margin = MarginContainer.new()
-	grid = GridContainer.new()
-	
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	
 	grid.columns = 3
+	
 	var margin_value := 6
 	margin.add_theme_constant_override("margin_top", margin_value)
 	margin.add_theme_constant_override("margin_left", margin_value)
@@ -103,11 +96,11 @@ func _set_pivot_offset(pivot_offset: String) -> void:
 	panel.hide()
 
 
-func _set_pivot_2d(node: Node2D, pivot_offset: String, type: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pivot_offset][TWO_DIMENSION]
+func _set_pivot_2d(node: Node2D, list: String, type: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[list][XY]
 	var tex = node.texture if type == "Sprite2D" else node.frames.get_frame(node.animation, 0)
-	
 	var offset := Vector2.ZERO
+	
 	offset.x = pivot.x * tex.get_width() / 2
 	offset.y = pivot.y * tex.get_height() / 2
 	
@@ -116,12 +109,19 @@ func _set_pivot_2d(node: Node2D, pivot_offset: String, type: String) -> void:
 	node.notify_property_list_changed()
 
 
-func _set_pivot_control(node: Control, pivot_offset: String) -> void:
-	var pivot: Vector2 = LIST_PIVOT[pivot_offset][CONTROL]
-	
+func _set_pivot_control(node: Control, list: String) -> void:
+	var pivot: Vector2 = LIST_PIVOT[list][CONTROL]
 	var offset := Vector2.ZERO
+	
 	offset.x = pivot.x * node.size.x
 	offset.y = pivot.y * node.size.y
 	
 	node.pivot_offset = offset
 	node.notify_property_list_changed()
+
+
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░ Title: NV Node Pivot
+# ░░█▀█░█▀█░█░░░█░░░█░█░█▀▀░░ Act: preset for Pivot offset
+# ░░█░█░█▀█░░▀▄░░▀▄░▀▄▀░█▀▀░░ Cast[ Editor, Node2D, Control ]
+# ░░▀░▀░▀░▀░░░▀░░░▀░░▀░░▀▀▀░░ Writers[ @illlustr, ]
+# ░ Projects ░░░░░░░░░░░░░░░░ https://github.com/naiiveprojects

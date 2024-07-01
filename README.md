@@ -1,4 +1,4 @@
-# <img src="./assetlib/icon.svg" width="32" height="32"> GD Node Pivot
+# <img src="./assetlib/icon.svg" width="32" height="32"> NV Node Pivot
 
 ➡️ [**for Godot Engine 3.x**](https://github.com/naiiveprojects/gd.node_pivot/tree/3.x) | ✅ **for Godot Engine 4.x**
 
